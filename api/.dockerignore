@@ -1,0 +1,10 @@
+__pycache__
+*.pyc
+*.pyo
+.pytest_cache
+tests/
+htmlcov/
+.coverage
+coverage.xml
+.env
+*.env
