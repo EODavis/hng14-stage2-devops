@@ -1,0 +1,25 @@
+# Environment files — NEVER commit these
+.env
+*.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+htmlcov/
+.coverage
+coverage.xml
+
+# Node
+node_modules/
+npm-debug.log
+
+# Docker
+.docker/
+
+# OS
+.DS_Store
+Thumbs.db

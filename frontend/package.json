@@ -2,6 +2,9 @@
   "name": "frontend",
   "version": "1.0.0",
   "main": "app.js",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "scripts": {
     "start": "node app.js"
   },

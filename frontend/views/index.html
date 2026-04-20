@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Job Dashboard</title>
   <style>
     body { font-family: sans-serif; max-width: 600px; margin: 40px auto; padding: 0 20px; }
@@ -9,6 +10,9 @@
     #result { margin-top: 20px; padding: 10px; background: #f4f4f4; border-radius: 4px; }
     #jobs { margin-top: 20px; }
     .job { padding: 8px; border-bottom: 1px solid #ddd; }
+    .job.completed { color: green; }
+    .job.failed, .job.timed-out { color: red; }
+    .job.processing { color: orange; }
   </style>
 </head>
 <body>
@@ -19,21 +23,44 @@
 
   <script>
     const jobIds = [];
+    const TERMINAL_STATES = ['completed', 'failed', 'error', 'timed out']; // ✅ FIX 17
 
     async function submitJob() {
-      const res = await fetch('/submit', { method: 'POST' });
-      const data = await res.json();
-      document.getElementById('result').innerText = `Submitted: ${data.job_id}`;
-      jobIds.push(data.job_id);
-      pollJob(data.job_id);
+      try {                                                     // ✅ FIX 15
+        const res = await fetch('/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },     // ✅ FIX 19
+          body: JSON.stringify({})
+        });
+        if (!res.ok) throw new Error(`Server error: ${res.status}`);
+        const data = await res.json();
+        if (!data.job_id) throw new Error('No job ID returned');
+
+        document.getElementById('result').textContent =        // ✅ FIX 16
+          `Submitted: ${data.job_id}`;
+        jobIds.push(data.job_id);
+        pollJob(data.job_id);
+      } catch (err) {
+        document.getElementById('result').textContent = `Error: ${err.message}`;
+      }
     }
 
-    async function pollJob(id) {
-      const res = await fetch(`/status/${id}`);
-      const data = await res.json();
-      renderJob(id, data.status);
-      if (data.status !== 'completed') {
-        setTimeout(() => pollJob(id), 2000);
+    async function pollJob(id, attempts = 0) {                 // ✅ FIX 18
+      const MAX_ATTEMPTS = 30;
+      if (attempts >= MAX_ATTEMPTS) {
+        renderJob(id, 'timed out');
+        return;
+      }
+      try {                                                     // ✅ FIX 15
+        const res = await fetch(`/status/${id}`);
+        if (!res.ok) throw new Error(`Status check failed: ${res.status}`);
+        const data = await res.json();
+        renderJob(id, data.status ?? 'unknown');
+        if (!TERMINAL_STATES.includes(data.status)) {          // ✅ FIX 17
+          setTimeout(() => pollJob(id, attempts + 1), 2000);   // ✅ FIX 18
+        }
+      } catch (err) {
+        renderJob(id, `error: ${err.message}`);
       }
     }
 
@@ -45,7 +72,8 @@
         el.id = id;
         document.getElementById('jobs').appendChild(el);
       }
-      el.innerText = `Job ${id.substring(0, 8)}... — ${status}`;
+      el.className = `job ${status}`;
+      el.textContent = `Job ${id.substring(0, 8)}... — ${status}`; // ✅ FIX 16
     }
   </script>
 </body>
