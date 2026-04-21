@@ -11,18 +11,20 @@ r = redis.Redis(
     port=int(os.getenv("REDIS_PORT", 6379))
 )
 
-@app.get("/health")        
+
+@app.get("/health")
 def health():
     return {"status": "ok"}
+
 
 @app.post("/jobs")
 def create_job():
     try:
         job_id = str(uuid.uuid4())
-        r.lpush("jobs", job_id)  
+        r.lpush("jobs", job_id)
         r.hset(f"job:{job_id}", "status", "queued")
         return {"job_id": job_id}
-    except RedisConnectionError: 
+    except RedisConnectionError:
         raise HTTPException(status_code=503, detail="Queue unavailable")
 
 
