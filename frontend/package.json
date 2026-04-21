@@ -6,10 +6,14 @@
     "node": ">=20.0.0"
   },
   "scripts": {
-    "start": "node app.js"
+    "start": "node app.js",
+    "lint": "eslint . --ext .js --ignore-pattern node_modules/"
   },
   "dependencies": {
     "express": "^4.18.2",
     "axios": "^1.4.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0"
   }
 }
