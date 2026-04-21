@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [main]
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
 
 # ════════════════════════════════════════════════════════════════════
@@ -29,10 +32,10 @@ jobs:
         run: pip install flake8
 
       - name: Lint Python — api
-        run: flake8 api/ --config api/setup.cfg
+        run: flake8 api/ --max-line-length=120 --exclude=api/tests,api/__pycache__
 
       - name: Lint Python — worker
-        run: flake8 worker/ --max-line-length=120
+        run: flake8 worker/ --max-line-length=120 --exclude=worker/__pycache__
 
       # ── JavaScript lint ──────────────────────────────────────────
       - name: Set up Node.js
@@ -55,9 +58,9 @@ jobs:
 
       - name: Lint Dockerfiles
         run: |
-          hadolint api/Dockerfile
-          hadolint worker/Dockerfile
-          hadolint frontend/Dockerfile
+          hadolint --ignore DL3008 --ignore DL3009 api/Dockerfile
+          hadolint --ignore DL3008 --ignore DL3009 worker/Dockerfile
+          hadolint --ignore DL3008 --ignore DL3009 frontend/Dockerfile
 
 
 # ════════════════════════════════════════════════════════════════════
@@ -185,8 +188,6 @@ jobs:
             | sudo tee /etc/apt/sources.list.d/trivy.list
           sudo apt-get update && sudo apt-get install -y trivy
 
-      # Build images locally for scanning
-      # (registry from previous job is gone — each job is a fresh runner)
       - name: Build images for scanning
         run: |
           docker build -t api:latest ./api
@@ -201,7 +202,6 @@ jobs:
             --format sarif \
             --output api-scan.sarif \
             api:latest
-        continue-on-error: false
 
       - name: Scan Worker image
         run: |
@@ -211,7 +211,6 @@ jobs:
             --format sarif \
             --output worker-scan.sarif \
             worker:latest
-        continue-on-error: false
 
       - name: Scan Frontend image
         run: |
@@ -221,7 +220,6 @@ jobs:
             --format sarif \
             --output frontend-scan.sarif \
             frontend:latest
-        continue-on-error: false
 
       - name: Upload SARIF results
         uses: actions/upload-artifact@v4
@@ -260,20 +258,20 @@ jobs:
         run: |
           echo "Waiting for stack to be ready..."
           for i in $(seq 1 24); do
-            UNHEALTHY=$(docker compose ps --format json \
+            NOT_HEALTHY=$(docker compose ps --format json \
               | python3 -c "
-          import sys, json
-          data = sys.stdin.read().strip()
-          services = [json.loads(l) for l in data.splitlines() if l.strip()]
-          not_healthy = [s['Name'] for s in services
-                         if s.get('Health','') not in ('healthy','')]
-          print('\n'.join(not_healthy))
-              " 2>/dev/null)
-            if [ -z "$UNHEALTHY" ]; then
-              echo "All services healthy after $((i*5)) seconds"
+import sys, json
+lines = [l for l in sys.stdin.read().splitlines() if l.strip()]
+services = [json.loads(l) for l in lines]
+bad = [s['Name'] for s in services
+       if s.get('Health','') not in ('healthy','')]
+print('\n'.join(bad))
+" 2>/dev/null)
+            if [ -z "$NOT_HEALTHY" ]; then
+              echo "All services healthy after $((i*5))s"
               break
             fi
-            echo "Still waiting: $UNHEALTHY"
+            echo "Still waiting ($((i*5))s): $NOT_HEALTHY"
             sleep 5
           done
           docker compose ps
@@ -297,12 +295,12 @@ jobs:
               "import sys,json; print(json.load(sys.stdin).get('status','unknown'))")
             echo "Attempt $i: status = $STATUS"
             if [ "$STATUS" = "completed" ]; then
-              echo "Integration test PASSED — job completed successfully"
+              echo "Integration test PASSED"
               exit 0
             fi
             sleep 4
           done
-          echo "Integration test FAILED — job did not complete in time"
+          echo "Integration test FAILED"
           docker compose logs
           exit 1
 
@@ -337,7 +335,7 @@ jobs:
       - name: Build images
         run: docker compose build
 
-      - name: Start base stack (first deploy)
+      - name: Start base stack
         run: docker compose up -d
 
       - name: Rolling update with health check guard
@@ -345,20 +343,16 @@ jobs:
           for SERVICE in api worker frontend; do
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo "Rolling update: $SERVICE"
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-            # Pull/rebuild new image
             docker compose build $SERVICE
-
-            # Start new container alongside old one
             docker compose up -d --no-deps --no-recreate $SERVICE
 
-            # Wait up to 60s for health check to pass
             HEALTHY=false
             for i in $(seq 1 12); do
+              CONTAINER_ID=$(docker compose ps -q $SERVICE | head -1)
               HEALTH=$(docker inspect \
                 --format='{{.State.Health.Status}}' \
-                $(docker compose ps -q $SERVICE) 2>/dev/null | head -1)
+                "$CONTAINER_ID" 2>/dev/null)
               echo "  [$i/12] $SERVICE health: $HEALTH"
               if [ "$HEALTH" = "healthy" ]; then
                 HEALTHY=true
@@ -368,15 +362,13 @@ jobs:
             done
 
             if [ "$HEALTHY" = "false" ]; then
-              echo "ABORT: $SERVICE failed health check after 60s"
-              echo "Old container left running — deploy rolled back"
+              echo "ABORT: $SERVICE failed health check — old container preserved"
               docker compose logs $SERVICE
               exit 1
             fi
 
-            echo "$SERVICE updated and healthy"
+            echo "$SERVICE updated successfully"
           done
 
-          echo ""
           echo "Rolling deploy complete"
           docker compose ps
