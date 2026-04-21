@@ -241,12 +241,12 @@ jobs:
             NOT_HEALTHY=$(
               docker compose ps --format json | 
               python3 - << 'PY'
-import sys, json
-lines = [l for l in sys.stdin.read().splitlines() if l.strip()]
-services = [json.loads(l) for l in lines]
-bad = [s['Name'] for s in services if s.get('Health','') not in ('healthy','')]
-print('\n'.join(bad))
-PY
+              import sys, json
+              lines = [l for l in sys.stdin.read().splitlines() if l.strip()]
+              services = [json.loads(l) for l in lines]
+              bad = [s['Name'] for s in services if s.get('Health','') not in ('healthy','')]
+              print('\n'.join(bad))
+              PY
             )
             if [ -z "$NOT_HEALTHY" ]; then
               echo "All services healthy after $((i*5))s"
