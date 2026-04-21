@@ -5,11 +5,10 @@ WORKDIR /app
 
 COPY requirements.txt .
 
-# --timeout=120 prevents pip from giving up on slow Lagos connections
-# --retries=5 retries failed downloads automatically
-RUN pip install --upgrade pip --timeout=120 --retries=5 && \
+RUN pip install --no-cache-dir --upgrade pip==24.0 --timeout=120 --retries=5 && \
     pip install --no-cache-dir --timeout=120 --retries=5 \
     --prefix=/install -r requirements.txt
+
 
 # ── Stage 2: Production image ─────────────────────────────────────
 FROM python:3.11-slim
