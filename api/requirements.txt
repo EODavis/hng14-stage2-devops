@@ -4,3 +4,5 @@ redis==5.0.4
 anyio==4.4.0
 httptools==0.6.1
 starlette==0.37.2
+pytest==9.0.3
+pytest-cov==7.1.0
