@@ -1,22 +1,21 @@
 # ── Stage 1: Install dependencies ─────────────────────────────────
-FROM node:20-slim AS builder
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
 COPY package*.json ./
-
-# --only=production is deprecated in npm 7+; use --omit=dev instead
 RUN npm ci --omit=dev
 
 # ── Stage 2: Production image ─────────────────────────────────────
-FROM node:20-slim
+FROM node:20-alpine
 
-RUN groupadd -r appuser && useradd -r -g appuser appuser
+# Alpine uses addgroup/adduser instead of groupadd/useradd
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
 WORKDIR /app
 
 COPY --from=builder /app/node_modules ./node_modules
-COPY --chown=appuser:appuser . .
+COPY --chown=appuser:appgroup . .
 
 USER appuser
 
