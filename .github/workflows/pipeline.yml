@@ -145,7 +145,6 @@ jobs:
       - name: Scan Frontend image
         run: trivy image --exit-code 1 --severity CRITICAL --format sarif --output frontend-scan.sarif frontend:latest
         continue-on-error: true
-        continue-on-error: true
       - name: Show vulnerability summary
         if: always()
         run: |
