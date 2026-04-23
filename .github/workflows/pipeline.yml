@@ -158,16 +158,11 @@ jobs:
         uses: actions/checkout@v4
       - name: Create .env for test
         run: |
-          printf 'REDIS_PORT=6379
-' > .env
-          printf 'SECRET_KEY=ci-test-secret
-' >> .env
-          printf 'DEBUG=false
-' >> .env
-          printf 'API_URL=http://api:8000
-' >> .env
-          printf 'FRONTEND_PORT=3000
-' >> .env
+          printf 'REDIS_PORT=6379' > .env
+          printf 'SECRET_KEY=ci-test-secret' >> .env
+          printf 'DEBUG=false' >> .env
+          printf 'API_URL=http://api:8000' >> .env
+          printf 'FRONTEND_PORT=3000' >> .env
       - name: Start full stack
         run: docker compose up -d --build
       - name: Wait for all services healthy
