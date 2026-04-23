@@ -4,7 +4,7 @@ FROM python:3.11-alpine AS builder
 WORKDIR /app
 
 COPY requirements.txt .
-RUN pip install --upgrade pip --timeout=120 --retries=5 && \
+RUN pip install --no-cache-dir --upgrade pip==24.0 --timeout=120 --retries=5 && \
     pip install --no-cache-dir --timeout=120 --retries=5 \
     --prefix=/install -r requirements.txt
 
