@@ -94,7 +94,7 @@ jobs:
           context: ./api
           push: true
           tags: |
-            localhost:5000/api:{{ github.sha }}
+            localhost:5000/api:${{ github.sha }}
             localhost:5000/api:latest
           network: host
       - name: Build and push Worker image
@@ -103,7 +103,7 @@ jobs:
           context: ./worker
           push: true
           tags: |
-            localhost:5000/worker:{{ github.sha }}
+            localhost:5000/worker:${{ github.sha }}
             localhost:5000/worker:latest
           network: host
       - name: Build and push Frontend image
@@ -112,7 +112,7 @@ jobs:
           context: ./frontend
           push: true
           tags: |
-            localhost:5000/frontend:{{ github.sha }}
+            localhost:5000/frontend:${{ github.sha }}
             localhost:5000/frontend:latest
           network: host
       - name: Confirm images in registry
