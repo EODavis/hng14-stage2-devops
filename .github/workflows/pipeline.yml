@@ -214,16 +214,11 @@ jobs:
         env:
           SECRET_KEY: ${{ secrets.SECRET_KEY }}
         run: |
-          printf 'REDIS_PORT=6379
-' > .env
-          printf 'SECRET_KEY=%s
-' "$SECRET_KEY" >> .env
-          printf 'DEBUG=false
-' >> .env
-          printf 'API_URL=http://api:8000
-' >> .env
-          printf 'FRONTEND_PORT=3000
-' >> .env
+          printf 'REDIS_PORT=6379' > .env
+          printf 'SECRET_KEY=%s' "$SECRET_KEY" >> .env
+          printf 'DEBUG=false' >> .env
+          printf 'API_URL=http://api:8000' >> .env
+          printf 'FRONTEND_PORT=3000' >> .env
       - name: Build images
         run: docker compose build
       - name: Start base stack
