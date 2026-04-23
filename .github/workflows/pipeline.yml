@@ -177,17 +177,27 @@ jobs:
         run: docker compose up -d --build
       - name: Wait for all services healthy
         run: |
+          TOTAL=$(docker compose ps --services | wc -l)
+          echo "Expecting $TOTAL healthy services"
           for i in $(seq 1 36); do
-            HEALTHY=$(docker compose ps | grep -c "healthy" || true)
-            TOTAL=$(docker compose ps --services | wc -l)
-            echo "Healthy $HEALTHY of $TOTAL (attempt $i)"
+            HEALTHY=$(docker compose ps | grep -c "(healthy)" || true)
+            echo "Attempt $i/36 — healthy: $HEALTHY / $TOTAL"
             if [ "$HEALTHY" -eq "$TOTAL" ]; then
-              echo "All services healthy after $((i*5))s"
-              break
+              echo "All $TOTAL services healthy after $((i*5))s"
+              docker compose ps
+              exit 0
             fi
             sleep 5
           done
+          echo "TIMEOUT — services did not become healthy in 180s"
           docker compose ps
+          echo "=== API logs ==="
+          docker compose logs api
+          echo "=== Worker logs ==="
+          docker compose logs worker
+          echo "=== Frontend logs ==="
+          docker compose logs frontend
+          exit 1
       - name: Submit a job
         run: |
           RESPONSE=$(curl -sf -X POST http://localhost:3000/submit             -H "Content-Type: application/json" -d '{}')
