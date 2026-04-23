@@ -175,6 +175,13 @@ jobs:
           printf 'FRONTEND_PORT=3000' >> .env
       - name: Start full stack
         run: docker compose up -d --build
+      - name: Debug API startup failure
+        if: always()
+        run: |
+          echo "=== API logs ==="
+          docker logs hng14-stage2-devops-api-1 2>&1 || true
+          echo "=== API inspect ==="
+          docker inspect hng14-stage2-devops-api-1 2>&1 || true
       - name: Wait for all services healthy
         run: |
           for i in $(seq 1 24); do

@@ -3,6 +3,9 @@ FROM python:3.11-alpine AS builder
 
 WORKDIR /app
 
+# Install gcc for any packages that need compilation on Alpine
+RUN apk add --no-cache gcc musl-dev libffi-dev
+
 COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip==24.0 --timeout=120 --retries=5 && \
     pip install --no-cache-dir --timeout=120 --retries=5 \
@@ -27,4 +30,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
   "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" \
   || exit 1
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# --no-access-log keeps container logs clean in CI
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--no-access-log"]
